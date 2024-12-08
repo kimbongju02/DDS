@@ -14,11 +14,20 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+
+from django.conf import settings
+from django.conf.urls.static import static
 
 from pybo import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('pybo/', views.index),
+    path('', views.index, name='index'),
+    path('set-folder/', views.set_folder, name='set_folder'),
+    path('get-image/', views.get_image, name='get_image'),
+    path('get-yolo-image/', views.get_yolo_image, name='get_yolo_image'),
+    path('receive-image/', views.receive_image, name='receive_image'),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

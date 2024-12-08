@@ -1,0 +1,4 @@
+.venv/
+yolov5/
+__pycache__/
+mysite/uploads/

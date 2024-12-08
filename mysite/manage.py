@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+# python manage.py runserver
+# python manage.py runserver 0.0.0.0:8000
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
-
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'yolov5'))
 
 def main():
     """Run administrative tasks."""

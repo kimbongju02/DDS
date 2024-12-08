@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Image Toggle Page</title>
     <style>
         body {
@@ -14,6 +15,7 @@
         .toggle-container {
             margin-top: 20px;
             display: flex;
+
             justify-content: center;
             gap: 10px;
         }
@@ -40,21 +42,89 @@
     </style>
 </head>
 <body>
-    <div class="toggle-container">
-        <label for="toggle">Select Model:</label>
-        <select id="toggle">
-            <option value="yolo">Yolo</option>
-            <option value="resnet">ResNet</option>
-        </select>
-    </div>
-
+    <button id="transBtn">송출 시작</button>
     <div class="image-container">
-        <div class="image-box">
-            <img src="project/mysite/pybo/templates/pybo/image1.jpg" alt="Image 1">
-        </div>
-        <div class="image-box">
-            <img src="project/mysite/pybo/templates/pybo/image1.jpg" alt="Image 2">
-        </div>
+        <img id="imageDisplay" src="" alt="전송된 이미지" style="width: 640px; height: 480px;">
     </div>
+    <button id="detectBtn">탐지 시작</button>
+    <div class="image-container">
+        <img id="yoloImageDisplay" src="" alt="객체 인식 결과" style="width: 640px; height: 480px;">
+    </div>
+    <script>
+        const transBtn = document.getElementById('transBtn');
+        const imageDisplay = document.getElementById('imageDisplay');
+        const detectBtn = document.getElementById('detectBtn');
+        const yoloImageDisplay = document.getElementById('yoloImageDisplay');
+
+        let imageSig = 0;
+        let yoloImageSig = 0;
+
+        transBtn.addEventListener('click', () => {
+            if (imageSig === 1) {
+                transBtn.textContent = '송출 시작';
+                imageSig = 0;
+                imageDisplay.src = '';
+                console.log('스트리밍 중지됨');
+            } else {
+                transBtn.textContent = '송출 중지';
+                imageSig = 1;
+                const timestamp = new Date().getTime();
+                imageDisplay.src = `/get-image/?_=${timestamp}`; 
+                console.log('스트리밍 시작');
+            }
+        });
+        detectBtn.addEventListener('click', () => {
+            if (yoloImageSig === 1) {
+                detectBtn.textContent = '탐지 시작';
+                yoloImageSig = 0;
+
+            } else {
+                detectBtn.textContent = '탐지 중지';
+                yoloImageSig = 1;
+            }
+        });
+
+        let isFetching = false; // 중복 요청 방지 플래그
+
+        setInterval(async () => {
+            if (yoloImageSig === 1 && !isFetching) {
+                isFetching = true; // 요청 시작 상태
+                try {
+                    const response = await fetch('/get-yolo-image/');
+                    if (response.ok) {
+                        const boundary = response.headers.get('Content-Type').split('boundary=')[1];
+                        const data = await response.text(); // 응답 데이터를 텍스트로 가져옴
+        
+                        // 멀티파트 데이터 파싱
+                        const parts = data.split(`--${boundary}`);
+                        for (const part of parts) {
+                            if (part.includes('Content-Type: image/jpeg')) {
+                                // 이미지 파트 처리 (Base64)
+                                const base64Image = part.split('\r\n\r\n')[1].trim();
+                                yoloImageDisplay.src = `data:image/jpeg;base64,${base64Image}`;
+                            } else if (part.includes('Content-Type: text/plain')) {
+                                // 텍스트 파트 처리
+                                const textData = part.split('\r\n\r\n')[1].trim();
+                                if (textData !== 'null'){
+                                    console.log('객체 인식 결과:', textData);
+                                    alert(`객체 인식 결과: ${textData} 발견`);
+                                }
+                                
+                            }
+                        }
+                    } else {
+                        console.error('서버 응답 실패:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('요청 오류:', error);
+                } finally {
+                    isFetching = false; // 요청 완료 상태
+                }
+            } else if (yoloImageSig === 0) {
+                yoloImageDisplay.src = ''; // 스트리밍 중지
+            }
+        }, 2000);
+
+    </script>
 </body>
 </html>
